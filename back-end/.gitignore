@@ -1,0 +1,6 @@
+*.zip
+.venv/
+db.csv
+__pycache__/
+.ruff_cache/
+*.log
