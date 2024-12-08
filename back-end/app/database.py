@@ -1,12 +1,38 @@
+import ast
+import csv
 from app.model import Book
-from typing import Optional
+from typing import Optional, Any
 from datetime import date
+from os import path
+
+
+class CsvSchema:
+    def get_headers() -> list[str]:
+        return ["isbn", "title", "authors", "publisher", "publish_date"]
+
+    def get_items(book: Book) -> list[Any]:
+        return [book.isbn, book.title, book.authors, book.publisher, book.publish_date]
+
+    def get_book_from_list(lst: list[str]) -> Book:
+        return Book(
+            isbn=lst[0],
+            title=lst[1],
+            authors=ast.literal_eval(lst[2]),
+            publisher=lst[3],
+            publish_date=lst[4],
+        )
 
 
 class Database:
     def __init__(self, file_path: str) -> None:
+        file_already_exists = path.exists(file_path)
+
         self.file_path = file_path
         self.file = open(file_path, "a+")
+
+        if not file_already_exists:
+            csv.writer(self.file).writerow(CsvSchema.get_headers())
+            self.file.flush()
 
     def get_all_books(
         self,
@@ -23,12 +49,15 @@ class Database:
         author = author.lower() if author is not None else None
         publisher = publisher.lower() if publisher is not None else None
 
-        lines = self.file.readlines()
+        csv_reader = csv.reader(self.file)
 
         books = []
 
-        for line in lines:
-            current_book: Book = Book.from_str(line)
+        for idx, line in enumerate(csv_reader):
+            if idx == 0:
+                continue
+
+            current_book: Book = CsvSchema.get_book_from_list(line)
 
             if isbn is not None and isbn != current_book.isbn.lower():
                 continue
@@ -47,12 +76,12 @@ class Database:
             if publish_date is not None and publish_date != current_book.publish_date:
                 continue
 
-            books.append(Book.from_str(line))
+            books.append(current_book)
 
         return books
 
     def add_book(self, book: Book) -> None:
-        self.file.write(str(book))
+        csv.writer(self.file).writerow(CsvSchema.get_items(book))
         self.file.flush()
 
     def update_book(self, old_isbn: str, book: Book) -> bool:
@@ -66,21 +95,33 @@ class Database:
     def remove_book(self, isbn: str) -> bool:
         self.file.seek(0, 0)
 
-        lines = self.file.readlines()
+        csv_reader = csv.reader(self.file)
+
+        removed = False
+
+        books_to_keep: list[Book] = []
+
+        for idx, line in enumerate(csv_reader):
+            if idx == 0:
+                continue
+
+            current_book: Book = CsvSchema.get_book_from_list(line)
+
+            if current_book.isbn == isbn:
+                removed = True
+            else:
+                books_to_keep.append(current_book)
 
         self.file.close()
 
         self.file = open(self.file_path, "w+")
 
-        removed = False
+        csv_writer = csv.writer(self.file)
 
-        for line in lines:
-            current_isbn = line.split(",")[0]
+        csv_writer.writerow(CsvSchema.get_headers())
 
-            if current_isbn == isbn:
-                removed = True
-            else:
-                self.file.write(line)
+        for book in books_to_keep:
+            csv_writer.writerow(CsvSchema.get_items(book))
 
         self.file.flush()
 
@@ -89,17 +130,20 @@ class Database:
     def count_books(self) -> int:
         self.file.seek(0, 0)
 
-        return len(self.file.readlines())
+        return len(self.file.readlines()) - 1
 
     def isbn_exists(self, isbn: str) -> bool:
         self.file.seek(0, 0)
 
-        lines = self.file.readlines()
+        csv_reader = csv.reader(self.file)
 
-        for line in lines:
-            current_isbn = line.split(",")[0]
+        for idx, line in enumerate(csv_reader):
+            if idx == 0:
+                continue
 
-            if current_isbn == isbn:
+            current_book: Book = CsvSchema.get_book_from_list(line)
+
+            if current_book.isbn == isbn:
                 return True
 
         return False
