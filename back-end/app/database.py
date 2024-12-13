@@ -11,13 +11,13 @@ class CsvSchema:
         return ["isbn", "title", "authors", "publisher", "publish_date"]
 
     def get_items(book: Book) -> list[Any]:
-        return [book.isbn, book.title, book.authors, book.publisher, book.publish_date]
+        return [book.isbn, book.title, ",".join(book.authors), book.publisher, book.publish_date]
 
     def get_book_from_list(lst: list[str]) -> Book:
         return Book(
             isbn=lst[0],
             title=lst[1],
-            authors=ast.literal_eval(lst[2]),
+            authors=lst[2].split(","),
             publisher=lst[3],
             publish_date=lst[4],
         )
@@ -58,6 +58,7 @@ class Database:
                 continue
 
             current_book: Book = CsvSchema.get_book_from_list(line)
+            print(current_book)
 
             if isbn is not None and isbn != current_book.isbn.lower():
                 continue
