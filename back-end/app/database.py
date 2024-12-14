@@ -11,7 +11,13 @@ class CsvSchema:
         return ["isbn", "title", "authors", "publisher", "publish_date"]
 
     def get_items(book: Book) -> list[Any]:
-        return [book.isbn, book.title, ",".join(book.authors), book.publisher, book.publish_date]
+        return [
+            book.isbn,
+            book.title,
+            ",".join(book.authors),
+            book.publisher,
+            book.publish_date,
+        ]
 
     def get_book_from_list(lst: list[str]) -> Book:
         return Book(

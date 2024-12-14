@@ -1,11 +1,11 @@
 import sys
 import hashlib
-from fastapi import FastAPI, Response, status
+from fastapi import FastAPI, Response, status, Query
 from loguru import logger
 from app.model import Book
 from app.database import Database
 from datetime import date
-from typing import Any, Optional
+from typing import Any, Optional, Annotated
 from zipfile import ZipFile
 from fastapi.responses import FileResponse
 
@@ -31,10 +31,10 @@ app = FastAPI()
 
 @app.get("/", status_code=status.HTTP_200_OK)
 def get_all_books(
-    isbn: Optional[str] = None,
-    title: Optional[str] = None,
-    author: Optional[str] = None,
-    publisher: Optional[str] = None,
+    isbn: Annotated[str | None, Query(min_length=1)] = None,
+    title: Annotated[str | None, Query(min_length=1)] = None,
+    author: Annotated[str | None, Query(min_length=1)] = None,
+    publisher: Annotated[str | None, Query(min_length=1)] = None,
     publish_date: Optional[date] = None,
 ) -> dict[str, Any]:
     """
@@ -77,7 +77,9 @@ def create_book(book: Book, response: Response) -> dict[str, Any]:
 
 
 @app.delete("/", status_code=status.HTTP_200_OK)
-def remove_book(isbn: str, response: Response) -> dict[str, Any]:
+def remove_book(
+    isbn: Annotated[str, Query(min_length=1)], response: Response
+) -> dict[str, Any]:
     """
     Removes a book that matches the given ISBN.
     """
@@ -97,7 +99,9 @@ def remove_book(isbn: str, response: Response) -> dict[str, Any]:
 
 
 @app.put("/", status_code=status.HTTP_200_OK)
-def update_book(old_isbn: str, book: Book, response: Response) -> dict[str, Any]:
+def update_book(
+    old_isbn: Annotated[str, Query(min_length=1)], book: Book, response: Response
+) -> dict[str, Any]:
     """
     Updates a book that matches the given ISBN with the provided data.
     """
